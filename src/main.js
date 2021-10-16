@@ -1,11 +1,13 @@
-import { minBy } from "ramda";
+import '../style.css'
 
-const SCALE = 100;
-const ITERATIONS = 5;
+const DIMENSIONS = { w: 900, h: 900 };
+const MAX_ITERATIONS = 100;
+const SCALE = 300;
 
 // const clamp = (max, min, n) => Math.min(Math.max(n, max), min);
 
 const Complex = (re, im) => ({ re, im });
+
 Complex.add = (a, b) => Complex(a.re + b.re, a.im + b.im);
 Complex.minus = (a, b) => Complex(a.re - b.re, a.im - b.im);
 Complex.scalarMul = (n, c) => Complex(c.re * n, c.im * n);
@@ -13,66 +15,71 @@ Complex.scalarMul = (n, c) => Complex(c.re * n, c.im * n);
 Complex.mul = (a, b) =>
   Complex(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
 Complex.div = (a, b) => {
-  const mul = 1 / (b.re ** 2 - b.im ** 2)
+  const mul = 1 / (b.re ** 2 + b.im ** 2)
   const c = Complex.mul(a, Complex(b.re, -b.im))
   return Complex.scalarMul(mul, c)
 };
 Complex.magnitude = (c) => Math.sqrt(c.re ** 2 + c.im ** 2)
 Complex.distance = (a, b) => Complex.magnitude(Complex.minus(a, b))
-Complex.pow = (c, n) => n === 1 ? c : Complex.mul(c, Complex.pow(c, n - 1))
+Complex.pow = (c, n) => n <= 1 ? c : Complex.mul(c, Complex.pow(c, n - 1))
 
-const getRootColor = ({ fn, dfn, roots }, c) => {
+const newtonsMethod = (z, { fn, dfn }) => {
+  // Z' = Z - P(Z)/P'(Z)
+  const step = Complex.div(fn(z), dfn(z))
+  return Complex.minus(z, step)
+}
+
+const getRootColor = (c, options) => {
   let z = c;
-  for (let i = 0; i < ITERATIONS; i++) {
-    // Z' = Z - P(Z)/P'(Z)
-    const step = Complex.div(fn(z), dfn(z));
-    z = Complex.minus(z, step);
+  let nextZ = newtonsMethod(z, options);
+
+  // while (Math.abs(nextZ.re, z.re) > 10) {
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    nextZ = newtonsMethod(nextZ, options)
+
+    if (Complex.distance(nextZ, z) < 0.001)
+      break;
+
+    z = nextZ
   }
 
-  const closestRoot = roots.reduce(
-    minBy(({ c }) => Complex.distance(c, z))
-  );
-
-  return closestRoot.color;
+  const mag = Complex.magnitude(z)
+  if (mag > 1.00001) {
+    return [30, 30, 30]
+  } else if(mag > 0.99999) {
+    return [70, 130, 255]
+  } else {
+    return [70, 255, 130]
+  }
 };
 
 const init = () => {
-  const dimensions = { w: 900, h: 900 };
   const $canvas = document.createElement("canvas");
   document.body.appendChild($canvas);
-  $canvas.width = dimensions.w;
-  $canvas.height = dimensions.h;
-  $canvas.style.border = "1px solid red";
+  $canvas.width = DIMENSIONS.w;
+  $canvas.height = DIMENSIONS.h;
+  $canvas.style.border = "1px solid pink";
 
   const ctx = $canvas.getContext("2d");
 
   const fn = (c) =>
     Complex.minus(Complex.pow(c, 3), Complex(1, 0));
-  const dfn = (c) => Complex.mul(Complex.pow(c, 2), Complex(3, 0));
-
-  const roots = [
-    { color: [150, 0, 0], c: Complex(1, 0) },
-    { color: [0, 150, 0], c: Complex(-0.5, Math.sqrt(3) / 2) },
-    { color: [0, 0, 150], c: Complex(-0.5, -Math.sqrt(3) / 2) },
-  ];
+  const dfn = (c) => Complex.scalarMul(3, Complex.pow(c, 2));
 
   try {
-    const imageData = ctx.getImageData(0, 0, dimensions.w, dimensions.w);
+    const imageData = ctx.getImageData(0, 0, DIMENSIONS.w, DIMENSIONS.w);
 
     for (
       let i = 0, pixelCount = 0;
       i < imageData.data.length;
       i += 4, pixelCount++
     ) {
-      const row = pixelCount / dimensions.w;
-      const col = pixelCount % dimensions.w;
+      const col = (pixelCount % DIMENSIONS.h) - DIMENSIONS.w/2;
+      const row = Math.floor(pixelCount / DIMENSIONS.h) - DIMENSIONS.h/2;
 
-      const c = Complex.scalarMul(
-        1 / SCALE,
-        Complex(col - dimensions.w / 2, row - dimensions.h / 2)
-      );
+      const c = Complex.scalarMul(1/SCALE, Complex(col, row));
 
-      const [r, g, b] = getRootColor({ fn, dfn, roots }, c);
+      const [r, g, b] = getRootColor(c, { fn, dfn });
 
       imageData.data[i] = r;
       imageData.data[i + 1] = g;
@@ -84,19 +91,6 @@ const init = () => {
   } catch (e) {
     console.error(e);
   }
-
-  roots.forEach(({ c }) => {
-    ctx.fillStyle = "#000000";
-    ctx.beginPath();
-    ctx.arc(
-      c.re * SCALE + dimensions.w / 2,
-      c.im * SCALE + dimensions.h / 2,
-      5,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  });
 };
 
 init();
