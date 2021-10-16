@@ -1,56 +1,55 @@
-import '../style.css'
+import {clamp, gt, T} from "ramda";
+import * as R from 'ramda'
+import "../style.css";
 
 const DIMENSIONS = { w: 900, h: 900 };
 const MAX_ITERATIONS = 100;
 const SCALE = 300;
 
-// const clamp = (max, min, n) => Math.min(Math.max(n, max), min);
-
 const Complex = (re, im) => ({ re, im });
-
 Complex.add = (a, b) => Complex(a.re + b.re, a.im + b.im);
 Complex.minus = (a, b) => Complex(a.re - b.re, a.im - b.im);
 Complex.scalarMul = (n, c) => Complex(c.re * n, c.im * n);
-
 Complex.mul = (a, b) =>
   Complex(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
 Complex.div = (a, b) => {
-  const mul = 1 / (b.re ** 2 + b.im ** 2)
-  const c = Complex.mul(a, Complex(b.re, -b.im))
-  return Complex.scalarMul(mul, c)
+  const mul = 1 / (b.re ** 2 + b.im ** 2);
+  const c = Complex.mul(a, Complex(b.re, -b.im));
+  return Complex.scalarMul(mul, c);
 };
-Complex.magnitude = (c) => Math.sqrt(c.re ** 2 + c.im ** 2)
-Complex.distance = (a, b) => Complex.magnitude(Complex.minus(a, b))
-Complex.pow = (c, n) => n <= 1 ? c : Complex.mul(c, Complex.pow(c, n - 1))
+Complex.magnitude = (c) => Math.sqrt(c.re ** 2 + c.im ** 2);
+Complex.distance = (a, b) => Complex.magnitude(Complex.minus(a, b));
+Complex.pow = (c, n) => (n <= 1 ? c : Complex.mul(c, Complex.pow(c, n - 1)));
 
 const newtonsMethod = (z, { fn, dfn }) => {
-  // Z' = Z - P(Z)/P'(Z)
-  const step = Complex.div(fn(z), dfn(z))
-  return Complex.minus(z, step)
-}
+  // Z' = Z - a*P(Z)/P'(Z)
+  const a = Complex(1, 0)
+  const step = Complex.div(fn(z), dfn(z));
+  return Complex.minus(z, Complex.mul(a, step));
+};
 
 const getRootColor = (c, options) => {
   let z = c;
   let nextZ = newtonsMethod(z, options);
 
-  // while (Math.abs(nextZ.re, z.re) > 10) {
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    nextZ = newtonsMethod(nextZ, options)
+  let n;
+  for (n = 0; n < MAX_ITERATIONS; n++) {
+    nextZ = newtonsMethod(nextZ, options);
 
-    if (Complex.distance(nextZ, z) < 0.001)
-      break;
+    if (Complex.distance(nextZ, z) < 0.001) break;
 
-    z = nextZ
+    z = nextZ;
   }
 
-  const mag = Complex.magnitude(z)
-  if (mag > 1.00001) {
-    return [30, 30, 30]
-  } else if(mag > 0.99999) {
-    return [70, 130, 255]
-  } else {
-    return [70, 255, 130]
-  }
+  const alpha = n*10/MAX_ITERATIONS
+
+  const getColor = R.cond([
+    [gt(R.__, 13), () => [70, 130, 255, alpha]],
+    [gt(R.__, 1), () => [70, 255, 130, alpha]],
+    [T, () => [30, 30, 30, alpha]],
+  ])
+
+  return getColor(n)
 };
 
 const init = () => {
@@ -62,8 +61,7 @@ const init = () => {
 
   const ctx = $canvas.getContext("2d");
 
-  const fn = (c) =>
-    Complex.minus(Complex.pow(c, 3), Complex(1, 0));
+  const fn = (c) => Complex.minus(Complex.pow(c, 3), Complex(1, 0));
   const dfn = (c) => Complex.scalarMul(3, Complex.pow(c, 2));
 
   try {
@@ -74,17 +72,17 @@ const init = () => {
       i < imageData.data.length;
       i += 4, pixelCount++
     ) {
-      const col = (pixelCount % DIMENSIONS.h) - DIMENSIONS.w/2;
-      const row = Math.floor(pixelCount / DIMENSIONS.h) - DIMENSIONS.h/2;
+      const col = (pixelCount % DIMENSIONS.h) - DIMENSIONS.w / 2;
+      const row = Math.floor(pixelCount / DIMENSIONS.h) - DIMENSIONS.h / 2;
 
-      const c = Complex.scalarMul(1/SCALE, Complex(col, row));
+      const c = Complex.scalarMul(1 / SCALE, Complex(col, row));
 
-      const [r, g, b] = getRootColor(c, { fn, dfn });
+      const [r, g, b, a] = getRootColor(c, { fn, dfn });
 
       imageData.data[i] = r;
       imageData.data[i + 1] = g;
       imageData.data[i + 2] = b;
-      imageData.data[i + 3] = 255;
+      imageData.data[i + 3] = 255*clamp(0, 1, a);
     }
 
     ctx.putImageData(imageData, 0, 0);
