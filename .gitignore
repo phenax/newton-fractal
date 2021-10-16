@@ -4,8 +4,3 @@ node_modules
 dist
 dist-ssr
 *.local
-
-*.bs.js
-lib/
-.merlin
-.bsb.lock
