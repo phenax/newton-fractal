@@ -13,14 +13,11 @@ const getColor = R.cond([
   [R.T, n => [30, 30, 30, getAlpha(n)]],
 ]);
 
-const init = ({ func, size, scale = 200 }) => {
-  const { $canvas, ctx } = createCanvas(size);
-  document.body.appendChild($canvas);
-
-  const { fn, dfn, a } = func
+const draw = ({ ctx, func, size, scale = 200 }) => {
+  const { fn, dfn, a = C.make(1, 0), zero = 0.0001 } = func
 
   forEachPixel(ctx, size, (x, y) => {
-    let z = C.scalarMul(1 / scale, C.make(x, y));
+    let z = C.make(x/scale, y/scale);
 
     let nextZ, n;
     for (n = 0; n < MAX_ITERATIONS; n++) {
@@ -28,7 +25,8 @@ const init = ({ func, size, scale = 200 }) => {
       const step = C.div(fn(z), dfn(z));
       nextZ = C.minus(z, C.mul(a, step));
 
-      if (C.distance(nextZ, z) < 0.001) break;
+      if (Math.abs(nextZ.re - z.re) < zero) break;
+      // if (C.distance(nextZ, z) < zero) break;
       z = nextZ;
     }
 
@@ -36,8 +34,32 @@ const init = ({ func, size, scale = 200 }) => {
   });
 };
 
-init({
-  func: functions.x3_1_1,
-  size: { w: 900, h: 900 },
-  scale: 200,
-})
+const init = (max, n, options) => {
+  const { ctx, size } = options
+  const m = n / max;
+
+  ctx.clearRect(0, 0, size.w, size.h)
+
+  draw({
+    ctx,
+    //func: functions.x3_1_1,
+    func: { ...functions.x3_1_1, a: C.make(m, 0) },
+    size,
+    scale: 100,
+  })
+
+  if (n < max) {
+    requestAnimationFrame(() => init(max, n + 1, options))
+  } else {
+    console.timeEnd('init')
+  }
+};
+
+const size = { w: 900, h: 900 }
+const { $canvas, ctx } = createCanvas(size);
+document.body.appendChild($canvas);
+
+console.time('init')
+init(50, 40, { ctx, size })
+// 32005.693115234375 ms
+
