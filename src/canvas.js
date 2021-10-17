@@ -1,4 +1,4 @@
-import { clamp } from 'ramda'
+import { clamp } from "ramda";
 
 export const createCanvas = (size) => {
   const $canvas = document.createElement("canvas");
@@ -31,4 +31,3 @@ export const forEachPixel = (ctx, size, fn) => {
 
   ctx.putImageData(imageData, 0, 0);
 };
-
