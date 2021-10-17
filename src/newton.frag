@@ -27,13 +27,11 @@ vec2 cpow(vec2 z, int n) {
   return res;
 }
 
-vec2 fn(vec2 z) {
-  return cpow(z, 3) - vec2(1., 0.);
-}
+//vec2 fn(vec2 z) { return cpow(z, 3) - vec2(1., 0.); }
+//vec2 dfn(vec2 z) { return 3.0*cpow(z, 2); }
 
-vec2 dfn(vec2 z) {
-  return 3.0*cpow(z, 2);
-}
+vec2 fn(vec2 z) { return cpow(z, 5) + 2.0*cpow(z, 3) - vec2(1., 0.); }
+vec2 dfn(vec2 z) { return 5.0*cpow(z, 4) + 3.0*cpow(z, 2); }
 
 void main() {
   // Normalized pixel coordinates (from 0 to 1)
@@ -52,7 +50,9 @@ void main() {
         if (distance(z, prevZ) < 0.001) break;
     }
 
-    float val = float(iterations) * 8.0 / float(MAX_ITERATIONS);
+    float val = float(iterations) * 10.0 / float(MAX_ITERATIONS);
+    float g = val * 0.5;
+    float b = val * 0.8;
 
-      gl_FragColor = vec4(val, val, val, 1.0);
+    gl_FragColor = vec4(0.0, g, b, val);
 }

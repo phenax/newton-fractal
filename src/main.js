@@ -23,12 +23,23 @@ const setA = (re, im) => {
 
 setA(1.0, 0.0);
 
-const drawLoop = n => {
-  const x = Math.min(3, n / 500)
+let forwards = true;
+
+const drawLoop = (n = -50) => {
+  const x = Math.max(-0.1, Math.min(3, n / 500))
+
+  n = forwards ? n + 1 : n - 1;
+
+  if (n === 1500) {
+    forwards = false
+  } else if (n === -50) {
+    forwards = true
+  }
+
   setA(x, 0.0)
 
-  window.requestAnimationFrame(drawLoop.bind(null, n + 1))
+  window.requestAnimationFrame(drawLoop.bind(null, n))
 };
 
-drawLoop(-10)
+drawLoop()
 
