@@ -1,7 +1,7 @@
 import * as R from "ramda";
 import * as C from "./complex";
 import * as functions from "./functions";
-import { createCanvas, forEachPixel } from "./canvas";
+import { createCanvas, forEachPixel, raf } from "./canvas";
 import "../style.css";
 
 const MAX_ITERATIONS = 100;
@@ -38,8 +38,6 @@ const init = (max, n, options) => {
   const { ctx, size } = options;
   const m = n / max;
 
-  ctx.clearRect(0, 0, size.w, size.h);
-
   draw({
     ctx,
     //func: functions.x3_1_1,
@@ -49,7 +47,7 @@ const init = (max, n, options) => {
   });
 
   if (n < max) {
-    requestAnimationFrame(() => init(max, n + 1, options));
+    raf(() => init(max, n + 1, options));
   } else {
     console.timeEnd("init");
   }

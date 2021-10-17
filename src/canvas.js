@@ -11,6 +11,8 @@ export const createCanvas = (size) => {
   return { $canvas, ctx };
 };
 
+export const raf = requestAnimationFrame;
+
 export const forEachPixel = (ctx, size, fn) => {
   const imageData = ctx.getImageData(0, 0, size.w, size.w);
 
