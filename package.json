@@ -7,9 +7,13 @@
     "serve": "vite preview",
     "deploy": "yarn build && gh-pages --dist ./dist"
   },
+  "dependencies": {
+    "glslCanvas": "^0.1.7",
+    "ramda": "^0.27.1"
+  },
   "devDependencies": {
     "gh-pages": "^3.2.3",
-    "ramda": "^0.27.1",
-    "vite": "^2.6.4"
+    "vite": "^2.6.4",
+    "vite-plugin-plain-text": "^1.1.4"
   }
 }
